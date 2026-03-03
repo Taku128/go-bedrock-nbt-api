@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  go-bedrock-nbt-api
+  A serverless Go API for converting Bedrock .mcstructure to Java .nbt
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  ConverterApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      # Explicitly reference the OpenAPI file to enable Binary Media Types natively
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: openapi.yml
+
+  ConverterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./lambda.zip
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - x86_64
+      Events:
+        ConvertPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ConverterApi
+            Path: /
+            Method: post
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL for Prod environment"
+    Value: !Sub "https://${ConverterApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

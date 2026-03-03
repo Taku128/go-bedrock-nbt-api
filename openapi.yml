@@ -1,0 +1,66 @@
+openapi: 3.0.1
+info:
+  title: Bedrock NBT Converter API
+  version: "1.0"
+x-amazon-apigateway-binary-media-types:
+  - "*/*"
+paths:
+  /:
+    post:
+      summary: Convert Bedrock .mcstructure or .mcworld to Java .nbt
+      parameters:
+        - in: query
+          name: filename
+          schema:
+            type: string
+          description: "Required: Original filename to parse (e.g. build.mcstructure, design.schem, world.litematic)"
+        - in: query
+          name: output
+          schema:
+            type: string
+            default: converted.nbt
+          description: "Filename for the downloaded response (e.g. custom.nbt)"
+        - in: query
+          name: min_x
+          schema:
+            type: integer
+          description: "Minimum X coordinate (only for mcworld)"
+        - in: query
+          name: max_x
+          schema:
+            type: integer
+          description: "Maximum X coordinate (only for mcworld)"
+        - in: query
+          name: min_y
+          schema:
+            type: integer
+          description: "Minimum Y coordinate (only for mcworld)"
+        - in: query
+          name: max_y
+          schema:
+            type: integer
+          description: "Maximum Y coordinate (only for mcworld)"
+        - in: query
+          name: min_z
+          schema:
+            type: integer
+          description: "Minimum Z coordinate (only for mcworld)"
+        - in: query
+          name: max_z
+          schema:
+            type: integer
+          description: "Maximum Z coordinate (only for mcworld)"
+        - in: query
+          name: dimension
+          schema:
+            type: integer
+            default: 0
+          description: "Dimension ID (0=Overworld, 1=Nether, 2=The End)"
+      responses:
+        "200":
+          description: Successfully converted file returned as binary
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConverterFunction.Arn}/invocations"
