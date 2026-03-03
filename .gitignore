@@ -1,0 +1,16 @@
+# SAM CLI
+.aws-sam/
+
+# Binaries
+bootstrap
+*.exe
+go-bedrock-nbt-api
+lambda.zip
+
+# Go
+vendor/
+go.sum
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,22 +1,24 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"github.com/ntaku256/go-bedrock-nbt-api/api"
 	bedrocknbt "github.com/ntaku256/go-bedrock-nbt-converter"
 )
 
 // convertBedrockMcworld handles .mcworld file conversion through the
 // go-bedrock-nbt-converter library.
-func convertBedrockMcworld(tmpFile string, params map[string]string) ([]byte, error) {
+func convertBedrockMcworld(ctx context.Context, tmpFile string, params *api.ConvertFileParams) ([]byte, error) {
 	opts := &bedrocknbt.ConvertOptions{
-		MinX:      parseInt32Param(params, "min_x", -100),
-		MaxX:      parseInt32Param(params, "max_x", 100),
-		MinY:      parseInt32Param(params, "min_y", -64),
-		MaxY:      parseInt32Param(params, "max_y", 320),
-		MinZ:      parseInt32Param(params, "min_z", -100),
-		MaxZ:      parseInt32Param(params, "max_z", 100),
-		Dimension: parseInt32Param(params, "dimension", 0),
+		MinX:      int32(valOrDefault(params.MinX, -100)),
+		MaxX:      int32(valOrDefault(params.MaxX, 100)),
+		MinY:      int32(valOrDefault(params.MinY, -64)),
+		MaxY:      int32(valOrDefault(params.MaxY, 320)),
+		MinZ:      int32(valOrDefault(params.MinZ, -100)),
+		MaxZ:      int32(valOrDefault(params.MaxZ, 100)),
+		Dimension: int32(valOrDefault(params.Dimension, 0)),
 	}
 
 	nbtBytes, _, _, _, err := bedrocknbt.ConvertMcworld(tmpFile, opts)
@@ -29,11 +31,18 @@ func convertBedrockMcworld(tmpFile string, params map[string]string) ([]byte, er
 
 // convertBedrockMcstructure handles .mcstructure file conversion through
 // the go-bedrock-nbt-converter library.
-func convertBedrockMcstructure(tmpFile string) ([]byte, error) {
+func convertBedrockMcstructure(ctx context.Context, tmpFile string) ([]byte, error) {
 	nbtBytes, _, _, _, err := bedrocknbt.ConvertMcstructure(tmpFile)
 	if err != nil {
 		log.Printf("Bedrock mcstructure conversion error: %v", err)
 		return nil, err
 	}
 	return nbtBytes, nil
+}
+
+func valOrDefault(ptr *int, def int) int {
+	if ptr == nil {
+		return def
+	}
+	return *ptr
 }

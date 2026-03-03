@@ -8,6 +8,7 @@ paths:
   /:
     post:
       summary: Convert Bedrock .mcstructure or .mcworld to Java .nbt
+      operationId: convertFile
       parameters:
         - in: query
           name: filename

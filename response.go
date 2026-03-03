@@ -1,27 +1,28 @@
 package main
 
 import (
-	"strconv"
+	"fmt"
+	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/ntaku256/go-bedrock-nbt-api/api"
+	"github.com/oapi-codegen/runtime"
 )
 
-// parseInt32Param extracts an int32 query-string parameter with a default fallback.
-func parseInt32Param(params map[string]string, key string, def int32) int32 {
-	if valStr, ok := params[key]; ok {
-		if val, err := strconv.ParseInt(valStr, 10, 32); err == nil {
-			return int32(val)
-		}
+// BindParams populates the ConvertFileParams struct from APIGatewayProxyRequest.
+func BindParams(req events.APIGatewayProxyRequest) (*api.ConvertFileParams, error) {
+	values := make(url.Values)
+	for k, v := range req.QueryStringParameters {
+		values.Add(k, v)
 	}
-	return def
-}
 
-// parseStringParam extracts a string query-string parameter with a default fallback.
-func parseStringParam(params map[string]string, key string, def string) string {
-	if valStr, ok := params[key]; ok && valStr != "" {
-		return valStr
+	var params api.ConvertFileParams
+	err := runtime.BindForm(&params, values, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bind query parameters: %w", err)
 	}
-	return def
+
+	return &params, nil
 }
 
 // errorResponse builds a plain-text error response with CORS headers.

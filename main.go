@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -25,6 +26,11 @@ import (
 
 // handler is the Lambda request handler.
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// ---- Setup Timeout ------------------------------------------------------
+	// Limit total execution time to 25s (Lambda default is usually 30s)
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
+
 	// ---- Decode body --------------------------------------------------------
 	var rawBody []byte
 	var err error
@@ -42,15 +48,31 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		return errorResponse(http.StatusBadRequest, "Empty request body"), nil
 	}
 
+	// ---- Bind Parameters (oapi-codegen) -------------------------------------
+	params, err := BindParams(req)
+	if err != nil {
+		return errorResponse(http.StatusBadRequest, "Invalid query parameters: "+err.Error()), nil
+	}
+
 	// ---- Determine format ---------------------------------------------------
-	// "filename" query param is preferred; fall back to legacy "type" param.
-	inputFilename := parseStringParam(req.QueryStringParameters, "filename", "")
-	ext := strings.ToLower(filepath.Ext(inputFilename))
+	var ext string
+	if params.Filename != nil {
+		ext = strings.ToLower(filepath.Ext(*params.Filename))
+	}
+
+	// If extension is missing, or we want to be sure, use the sniffer.
 	if ext == "" {
-		if req.QueryStringParameters["type"] == "mcworld" {
-			ext = ".mcworld"
+		detectedExt, err := DetectFormat(rawBody)
+		if err == nil && detectedExt != "" {
+			log.Printf("Auto-detected file format: %s", detectedExt)
+			ext = detectedExt
 		} else {
-			ext = ".mcstructure"
+			// Fallback to legacy "type" param or default to .mcstructure
+			if req.QueryStringParameters["type"] == "mcworld" {
+				ext = ".mcworld"
+			} else {
+				ext = ".mcstructure"
+			}
 		}
 	}
 
@@ -66,7 +88,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		}
 		defer os.Remove(tmpFile)
 
-		nbtBytes, err = convertBedrockMcworld(tmpFile, req.QueryStringParameters)
+		nbtBytes, err = convertBedrockMcworld(ctx, tmpFile, params)
 		if err != nil {
 			return errorResponse(http.StatusUnprocessableEntity,
 				"Failed to parse or convert Bedrock world: "+err.Error()), nil
@@ -80,7 +102,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		}
 		defer os.Remove(tmpFile)
 
-		nbtBytes, err = convertJavaNbt(tmpFile)
+		nbtBytes, err = convertJavaNbt(ctx, tmpFile)
 		if err != nil {
 			return errorResponse(http.StatusUnprocessableEntity, err.Error()), nil
 		}
@@ -93,12 +115,12 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		}
 		defer os.Remove(tmpFile)
 
-		nbtBytes, err = convertBedrockMcstructure(tmpFile)
+		nbtBytes, err = convertBedrockMcstructure(ctx, tmpFile)
 		if err != nil {
 			log.Printf("Bedrock conversion error: %v — trying Java fallback", err)
 
 			var errJava error
-			nbtBytes, errJava = convertJavaNbt(tmpFile)
+			nbtBytes, errJava = convertJavaNbt(ctx, tmpFile)
 			if errJava != nil {
 				return errorResponse(http.StatusUnprocessableEntity,
 					"Bedrock: "+err.Error()+"\nJava fallback: "+errJava.Error()), nil
@@ -107,7 +129,11 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	// ---- Return binary response ---------------------------------------------
-	outputName := parseStringParam(req.QueryStringParameters, "output", "converted.nbt")
+	outputName := "converted.nbt"
+	if params.Output != nil && *params.Output != "" {
+		outputName = *params.Output
+	}
+
 	return events.APIGatewayProxyResponse{
 		StatusCode:      http.StatusOK,
 		IsBase64Encoded: true,
