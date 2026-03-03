@@ -5,7 +5,7 @@ $env:GOARCH="amd64"
 $env:CGO_ENABLED="0"
 
 Write-Host "Compiling Go binary for Amazon Linux..."
-go build -tags lambda.norpc -o bootstrap main.go
+go build -tags lambda.norpc -o bootstrap .
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Zipping..."
