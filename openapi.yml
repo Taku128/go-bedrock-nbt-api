@@ -60,6 +60,26 @@ paths:
       responses:
         "200":
           description: Successfully converted file returned as binary
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConverterFunction.Arn}/invocations"
+    options:
+      summary: CORS preflight
+      responses:
+        "200":
+          description: OK
       x-amazon-apigateway-integration:
         httpMethod: POST
         type: aws_proxy

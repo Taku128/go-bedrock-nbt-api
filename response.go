@@ -31,8 +31,10 @@ func errorResponse(statusCode int, message string) events.APIGatewayProxyRespons
 		StatusCode: statusCode,
 		Body:       message,
 		Headers: map[string]string{
+			"Access-Control-Allow-Origin":  "*",
+			"Access-Control-Allow-Methods": "POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept",
 			"Content-Type":                "text/plain",
-			"Access-Control-Allow-Origin": "*",
 		},
 	}
 }

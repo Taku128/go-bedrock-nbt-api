@@ -26,6 +26,21 @@ import (
 
 // handler is the Lambda request handler.
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("Received %s request for %s", req.HTTPMethod, req.Path)
+
+	// ---- Handle OPTIONS (CORS Preflight) ------------------------------------
+	if strings.EqualFold(req.HTTPMethod, "OPTIONS") {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusOK,
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin":  "*",
+				"Access-Control-Allow-Methods": "POST, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept",
+				"Access-Control-Max-Age":       "600",
+			},
+		}, nil
+	}
+
 	// ---- Setup Timeout ------------------------------------------------------
 	// Limit total execution time to 25s (Lambda default is usually 30s)
 	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
@@ -45,7 +60,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	if len(rawBody) == 0 {
-		return errorResponse(http.StatusBadRequest, "Empty request body"), nil
+		return errorResponse(http.StatusBadRequest, "Empty request body for "+req.HTTPMethod+" request"), nil
 	}
 
 	// ---- Bind Parameters (oapi-codegen) -------------------------------------
@@ -142,6 +157,8 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 			"Content-Type":                "application/octet-stream",
 			"Content-Disposition":         `attachment; filename="` + outputName + `"`,
 			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Methods": "POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept",
 		},
 	}, nil
 }

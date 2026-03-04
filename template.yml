@@ -22,11 +22,6 @@ Resources:
             Location: openapi.yml
       BinaryMediaTypes:
         - "*/*"
-      Cors:
-        AllowMethods: "'POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept'"
-        AllowOrigin: "'*'"
-        MaxAge: "'600'"
       GatewayResponses:
         DEFAULT_4XX:
           ResponseParameters:
@@ -58,6 +53,12 @@ Resources:
             RestApiId: !Ref ConverterApi
             Path: /
             Method: post
+        ConvertOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ConverterApi
+            Path: /
+            Method: options
 
 Outputs:
   ApiEndpoint:
