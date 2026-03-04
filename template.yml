@@ -20,10 +20,6 @@ Resources:
           Name: AWS::Include
           Parameters:
             Location: openapi.yml
-      Cors:
-        AllowMethods: "'POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,X-AMZ-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
 
 
   ConverterFunction:
